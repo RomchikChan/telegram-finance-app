@@ -255,7 +255,7 @@
         <div class="transactions">
             <h2>Последние операции</h2>
             <div class="transaction-list" id="transaction-list">
-                <div class="empty-state">Нет операций</div>
+                <div class="empty-state">Загрузка...</div>
             </div>
         </div>
         
@@ -309,8 +309,58 @@
         tg.expand();
         
         // Инициализация данных
-        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
-        let isDarkTheme = localStorage.getItem('isDarkTheme') === 'true';
+        let transactions = [];
+        let isDarkTheme = false;
+
+        // Функция загрузки данных
+        function loadData() {
+            // Показываем состояние загрузки
+            document.getElementById('transaction-list').innerHTML = '<div class="empty-state">Загрузка...</div>';
+            
+            // Загружаем транзакции из Cloud Storage
+            tg.CloudStorage.getItem('transactions', (error, data) => {
+                if (error) {
+                    console.error('Ошибка Cloud Storage:', error);
+                    // Fallback на localStorage
+                    transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+                } else if (data) {
+                    transactions = JSON.parse(data);
+                } else {
+                    transactions = [];
+                }
+                updateUI();
+            });
+            
+            // Загружаем тему из Cloud Storage
+            tg.CloudStorage.getItem('isDarkTheme', (error, themeData) => {
+                if (!error && themeData) {
+                    isDarkTheme = themeData === 'true';
+                } else {
+                    // Fallback на localStorage
+                    isDarkTheme = localStorage.getItem('isDarkTheme') === 'true';
+                }
+                applyTheme();
+            });
+        }
+
+        // Функция сохранения данных
+        function saveData() {
+            // Сохраняем транзакции в Cloud Storage
+            tg.CloudStorage.setItem('transactions', JSON.stringify(transactions), (error) => {
+                if (error) {
+                    console.error('Ошибка сохранения в Cloud:', error);
+                    // Fallback на localStorage
+                    localStorage.setItem('transactions', JSON.stringify(transactions));
+                }
+            });
+            
+            // Сохраняем тему в Cloud Storage
+            tg.CloudStorage.setItem('isDarkTheme', isDarkTheme.toString(), (error) => {
+                if (error) {
+                    localStorage.setItem('isDarkTheme', isDarkTheme.toString());
+                }
+            });
+        }
         
         // Применение темы
         function applyTheme() {
@@ -326,7 +376,7 @@
         // Переключение темы
         function toggleTheme() {
             isDarkTheme = !isDarkTheme;
-            localStorage.setItem('isDarkTheme', isDarkTheme);
+            saveData(); // Сохраняем в Cloud Storage
             applyTheme();
         }
         
@@ -442,7 +492,7 @@
             };
             
             transactions.push(transaction);
-            localStorage.setItem('transactions', JSON.stringify(transactions));
+            saveData(); // Сохраняем в Cloud Storage
             
             // Очистка формы
             document.getElementById('description').value = '';
@@ -461,8 +511,7 @@
         }
         
         // Инициализация приложения
-        applyTheme();
-        updateUI();
+        loadData(); // Загружаем данные при запуске
         
         // Обработчик изменения темы в Telegram
         tg.onEvent('themeChanged', function() {
