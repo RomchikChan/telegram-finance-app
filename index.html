@@ -4,15 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Финансовый помощник</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
             --primary-color: #40a7e3;
             --income-color: #34C759;
             --expense-color: #FF3B30;
             --bg-color: #F2F2F7;
-            --card-bg: rgba(255, 255, 255, 0.85); /* Увеличена непрозрачность */
+            --card-bg: rgba(255, 255, 255, 0.85);
             --text-color: #000000;
-            --header-text: #1C1C1E; /* Новый цвет для заголовков */
+            --header-text: #1C1C1E;
             --secondary-text: #8E8E93;
             --border-radius: 16px;
             --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
@@ -24,9 +25,9 @@
             --income-color: #30D158;
             --expense-color: #FF453A;
             --bg-color: #000000;
-            --card-bg: rgba(30, 30, 30, 0.85); /* Увеличена непрозрачность */
+            --card-bg: rgba(30, 30, 30, 0.85);
             --text-color: #FFFFFF;
-            --header-text: #FFFFFF; /* Белый для заголовков в темной теме */
+            --header-text: #FFFFFF;
             --secondary-text: #8E8E93;
             --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
         }
@@ -45,7 +46,6 @@
             padding: 16px;
             transition: background-color 0.3s, color 0.3s;
             line-height: 1.4;
-            /* Фоновое изображение по умолчанию */
             background-image: url('https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg');
             background-size: cover;
             background-position: center;
@@ -78,7 +78,7 @@
             font-size: 28px;
             font-weight: 700;
             margin-bottom: 6px;
-            color: var(--header-text); /* Используем переменную для цвета заголовка */
+            color: var(--header-text);
             letter-spacing: -0.5px;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
@@ -106,7 +106,7 @@
             font-size: 16px;
             font-weight: 500;
             margin-bottom: 12px;
-            color: var(--header-text); /* Используем переменную для цвета заголовка */
+            color: var(--header-text);
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
 
@@ -115,7 +115,7 @@
             font-weight: 800;
             margin: 16px 0;
             letter-spacing: -1px;
-            color: var(--header-text); /* Используем переменную для цвета суммы */
+            color: var(--header-text);
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
@@ -171,7 +171,7 @@
             margin-bottom: 20px;
             font-size: 22px;
             font-weight: 700;
-            color: var(--header-text); /* Используем переменную для цвета заголовка */
+            color: var(--header-text);
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
 
@@ -227,7 +227,7 @@
             font-size: 16px;
             font-weight: 600;
             margin-bottom: 4px;
-            color: var(--header-text); /* Используем переменную для цвета текста */
+            color: var(--header-text);
         }
 
         .transaction-category {
@@ -250,7 +250,7 @@
             margin-bottom: 20px;
             font-size: 22px;
             font-weight: 700;
-            color: var(--header-text); /* Используем переменную для цвета заголовка */
+            color: var(--header-text);
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
 
@@ -263,7 +263,7 @@
             margin-bottom: 8px;
             font-weight: 600;
             font-size: 15px;
-            color: var(--header-text); /* Используем переменную для цвета текста */
+            color: var(--header-text);
         }
 
         input, select {
@@ -282,6 +282,20 @@
         .dark-theme select {
             background: rgba(255, 255, 255, 0.15);
             border-color: rgba(255, 255, 255, 0.3);
+            color: var(--text-color);
+        }
+
+        /* Исправление для выпадающего списка в темной теме */
+        .dark-theme select option {
+            background-color: #1C1C1E;
+            color: #FFFFFF;
+        }
+
+        /* Стили для групп option в темной теме */
+        .dark-theme select optgroup {
+            background-color: #2C2C2E;
+            color: #FFFFFF;
+            font-weight: bold;
         }
 
         input:focus, select:focus {
@@ -303,7 +317,7 @@
 
         @media (max-width: 768px) {
             .btn-group {
-                flex-direction: column; /* На мобильных кнопки друг под другом */
+                flex-direction: column;
             }
         }
 
@@ -349,8 +363,8 @@
             right: 24px;
             width: 60px;
             height: 60px;
-            border-radius: 12px; /* Меньшее скругление для квадратной формы */
-            background: rgb(27, 27, 27); /* Темно-серый цвет */
+            border-radius: 12px;
+            background: rgb(27, 27, 27);
             color: white;
             display: flex;
             align-items: center;
@@ -376,8 +390,8 @@
             right: 24px;
             width: 60px;
             height: 60px;
-            border-radius: 12px; /* Меньшее скругление для квадратной формы */
-            background: rgb(27, 27, 27); /* Темно-серый цвет */
+            border-radius: 12px;
+            background: rgb(27, 27, 27);
             color: white;
             display: flex;
             align-items: center;
@@ -405,7 +419,6 @@
             font-weight: 500;
         }
 
-        /* Стили для модального окна выбора темы */
         .theme-modal {
             display: none;
             position: fixed;
@@ -440,7 +453,7 @@
             margin-bottom: 20px;
             font-size: 22px;
             font-weight: 700;
-            color: var(--header-text); /* Используем переменную для цвета заголовка */
+            color: var(--header-text);
             text-align: center;
         }
 
@@ -486,14 +499,13 @@
             font-size: 14px;
         }
 
-        /* Медиа-запрос для мобильных устройств */
         @media (max-width: 768px) {
             .income-expense {
-                flex-direction: column; /* Вертикальное расположение на мобильных */
+                flex-direction: column;
             }
             
             .income, .expense {
-                width: 100%; /* Полная ширина */
+                width: 100%;
             }
         }
 
@@ -534,12 +546,10 @@
             }
         }
 
-        /* Анимаations для плавности */
         .balance-card, .transactions, .add-transaction, .transaction-item {
             transition: all 0.3s ease;
         }
 
-        /* Стили для темной темы */
         .dark-theme .balance-card h2,
         .dark-theme .transactions h2,
         .dark-theme .add-transaction h2,
@@ -634,7 +644,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно выбора темы -->
     <div class="theme-modal" id="themeModal">
         <div class="theme-modal-content">
             <h2>Выберите фон</h2>
@@ -679,6 +688,10 @@
     </div>
 
     <script>
+    // Инициализация Telegram WebApp
+    let tg = window.Telegram.WebApp;
+    tg.expand();
+    
     // Инициализация данных
     let transactions = [];
     let isDarkTheme = false;
@@ -691,29 +704,65 @@
 
     // Функция загрузки данных
     function loadData() {
-        // Загружаем транзакции из localStorage
-        transactions = JSON.parse(localStorage.getItem('transactions')) || [];
-        
-        // Загружаем тему из localStorage
-        isDarkTheme = localStorage.getItem('isDarkTheme') === 'true';
-        
-        // Загружаем фон из localStorage
-        currentBackground = localStorage.getItem('background') || 'https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg';
-        
-        updateUI();
-        applyTheme();
+        // Пытаемся загрузить данные из Telegram CloudStorage
+        tg.CloudStorage.getItem('transactions', function(err, data) {
+            if (!err && data) {
+                try {
+                    transactions = JSON.parse(data);
+                } catch (e) {
+                    console.error('Error parsing transactions data:', e);
+                    transactions = [];
+                }
+            } else {
+                // Если в CloudStorage нет данных, пробуем загрузить из localStorage
+                transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+            }
+            
+            // Загружаем тему
+            tg.CloudStorage.getItem('isDarkTheme', function(err, data) {
+                if (!err && data) {
+                    isDarkTheme = data === 'true';
+                } else {
+                    isDarkTheme = localStorage.getItem('isDarkTheme') === 'true';
+                }
+                
+                // Загружаем фон
+                tg.CloudStorage.getItem('background', function(err, data) {
+                    if (!err && data) {
+                        currentBackground = data;
+                    } else {
+                        currentBackground = localStorage.getItem('background') || 'https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg';
+                    }
+                    
+                    updateUI();
+                    applyTheme();
+                });
+            });
+        });
     }
 
     // Функция сохранения данных
     function saveData() {
-        // Сохраняем транзакции в localStorage
-        localStorage.setItem('transactions', JSON.stringify(transactions));
+        // Сохраняем в Telegram CloudStorage
+        tg.CloudStorage.setItem('transactions', JSON.stringify(transactions), function(err) {
+            if (err) {
+                console.error('Error saving to CloudStorage:', err);
+                // Если не удалось сохранить в CloudStorage, сохраняем в localStorage
+                localStorage.setItem('transactions', JSON.stringify(transactions));
+            }
+        });
         
-        // Сохраняем тему в localStorage
-        localStorage.setItem('isDarkTheme', isDarkTheme.toString());
+        tg.CloudStorage.setItem('isDarkTheme', isDarkTheme.toString(), function(err) {
+            if (err) {
+                localStorage.setItem('isDarkTheme', isDarkTheme.toString());
+            }
+        });
         
-        // Сохраняем фон в localStorage
-        localStorage.setItem('background', currentBackground);
+        tg.CloudStorage.setItem('background', currentBackground, function(err) {
+            if (err) {
+                localStorage.setItem('background', currentBackground);
+            }
+        });
     }
     
     // Применение темы
