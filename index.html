@@ -1,960 +1,256 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Финансовый помощник</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        :root {
-            --primary-color: #40a7e3;
-            --income-color: #34C759;
-            --expense-color: #FF3B30;
-            --bg-color: #F2F2F7;
-            --card-bg: rgba(255, 255, 255, 0.85);
-            --text-color: #000000;
-            --header-text: #1C1C1E;
-            --secondary-text: #8E8E93;
-            --border-radius: 16px;
-            --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            --blur: blur(15px);
-        }
-
-        .dark-theme {
-            --primary-color: #64b5f6;
-            --income-color: #30D158;
-            --expense-color: #FF453A;
-            --bg-color: #000000;
-            --card-bg: rgba(30, 30, 30, 0.85);
-            --text-color: #FFFFFF;
-            --header-text: #FFFFFF;
-            --secondary-text: #8E8E93;
-            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            padding: 16px;
-            transition: background-color 0.3s, color 0.3s;
-            line-height: 1.4;
-            background-image: url('https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            min-height: 100vh;
-        }
-
-        .dark-theme {
-            background-color: rgba(0, 0, 0, 0.7);
-        }
-
-        .container {
-            max-width: 100%;
-            margin: 0 auto;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 24px;
-            padding: 20px;
-            background: var(--card-bg);
-            backdrop-filter: var(--blur);
-            -webkit-backdrop-filter: var(--blur);
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        h1 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 6px;
-            color: var(--header-text);
-            letter-spacing: -0.5px;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        header p {
-            font-size: 16px;
-            color: var(--secondary-text);
-            font-weight: 400;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .balance-card {
-            background: var(--card-bg);
-            backdrop-filter: var(--blur);
-            -webkit-backdrop-filter: var(--blur);
-            border-radius: var(--border-radius);
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .balance-card h2 {
-            font-size: 16px;
-            font-weight: 500;
-            margin-bottom: 12px;
-            color: var(--header-text);
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .balance-amount {
-            font-size: 36px;
-            font-weight: 800;
-            margin: 16px 0;
-            letter-spacing: -1px;
-            color: var(--header-text);
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .income-expense {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 20px;
-            gap: 12px;
-        }
-
-        .income, .expense {
-            padding: 16px;
-            border-radius: 14px;
-            width: 48%;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-
-        .income {
-            background: rgba(52, 199, 89, 0.2);
-            color: var(--income-color);
-        }
-
-        .expense {
-            background: rgba(255, 59, 48, 0.2);
-            color: var(--expense-color);
-        }
-
-        .income h3, .expense h3 {
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 6px;
-            opacity: 0.9;
-        }
-
-        .income div, .expense div {
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        .transactions {
-            background: var(--card-bg);
-            backdrop-filter: var(--blur);
-            -webkit-backdrop-filter: var(--blur);
-            border-radius: var(--border-radius);
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .transactions h2 {
-            margin-bottom: 20px;
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--header-text);
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .transaction-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .transaction-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px;
-            margin: 8px 0;
-            border-radius: 14px;
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            transition: all 0.2s ease;
-        }
-
-        .dark-theme .transaction-item {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .transaction-item:active {
-            transform: scale(0.98);
-            background: rgba(255, 255, 255, 0.7);
-        }
-
-        .dark-theme .transaction-item:active {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .transaction-amount.income {
-            color: var(--income-color);
-            font-weight: 700;
-            font-size: 16px;
-        }
-
-        .transaction-amount.expense {
-            color: var(--expense-color);
-            font-weight: 700;
-            font-size: 16px;
-        }
-
-        .transaction-details {
-            flex-grow: 1;
-            margin-left: 16px;
-        }
-
-        .transaction-details div:first-child {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 4px;
-            color: var(--header-text);
-        }
-
-        .transaction-category {
-            font-size: 14px;
-            color: var(--secondary-text);
-            font-weight: 400;
-        }
-
-        .add-transaction {
-            background: var(--card-bg);
-            backdrop-filter: var(--blur);
-            -webkit-backdrop-filter: var(--blur);
-            border-radius: var(--border-radius);
-            padding: 24px;
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .add-transaction h2 {
-            margin-bottom: 20px;
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--header-text);
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            font-size: 15px;
-            color: var(--header-text);
-        }
-
-        input, select {
-            width: 100%;
-            padding: 16px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 14px;
-            background: rgba(255, 255, 255, 0.7);
-            color: var(--text-color);
-            font-size: 16px;
-            transition: all 0.2s ease;
-            font-family: inherit;
-        }
-
-        .dark-theme input,
-        .dark-theme select {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 255, 255, 0.3);
-            color: var(--text-color);
-        }
-
-        /* Исправление для выпадающего списка в темной теме */
-        .dark-theme select option {
-            background-color: #1C1C1E;
-            color: #FFFFFF;
-        }
-
-        /* Стили для групп option в темной теме */
-        .dark-theme select optgroup {
-            background-color: #2C2C2E;
-            color: #FFFFFF;
-            font-weight: bold;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(64, 167, 227, 0.2);
-            background: rgba(255, 255, 255, 0.8);
-        }
-
-        .dark-theme input:focus, 
-        .dark-theme select:focus {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 12px;
-        }
-
-        @media (max-width: 768px) {
-            .btn-group {
-                flex-direction: column;
-            }
-        }
-
-        button {
-            flex: 1;
-            padding: 18px;
-            border: none;
-            border-radius: 14px;
-            font-weight: 700;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-family: inherit;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-
-        button:active {
-            transform: scale(0.95);
-        }
-
-        .btn-income {
-            background: rgba(52, 199, 89, 0.8);
-            color: white;
-        }
-
-        .btn-income:active {
-            background: rgba(52, 199, 89, 0.9);
-        }
-
-        .btn-expense {
-            background: rgba(255, 59, 48, 0.8);
-            color: white;
-        }
-
-        .btn-expense:active {
-            background: rgba(255, 59, 48, 0.9);
-        }
-
-        .theme-toggle {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
-            background: rgb(27, 27, 27);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            cursor: pointer;
-            z-index: 1000;
-            font-size: 24px;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .theme-toggle:active {
-            transform: scale(0.9);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .theme-selector {
-            position: fixed;
-            bottom: 95px;
-            right: 24px;
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
-            background: rgb(27, 27, 27);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            cursor: pointer;
-            z-index: 1000;
-            font-size: 24px;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .theme-selector:active {
-            transform: scale(0.9);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--secondary-text);
-            font-size: 16px;
-            font-weight: 500;
-        }
-
-        .theme-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            z-index: 2000;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .theme-modal-content {
-            background: var(--card-bg);
-            backdrop-filter: var(--blur);
-            -webkit-backdrop-filter: var(--blur);
-            border-radius: var(--border-radius);
-            padding: 24px;
-            width: 100%;
-            max-width: 500px;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .theme-modal h2 {
-            margin-bottom: 20px;
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--header-text);
-            text-align: center;
-        }
-
-        .theme-options {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-        }
-
-        .theme-option {
-            position: relative;
-            border-radius: 12px;
-            overflow: hidden;
-            cursor: pointer;
-            aspect-ratio: 1/1;
-            transition: transform 0.2s ease;
-            border: 3px solid transparent;
-        }
-
-        .theme-option.selected {
-            border-color: var(--primary-color);
-        }
-
-        .theme-option:active {
-            transform: scale(0.95);
-        }
-
-        .theme-option img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .theme-option-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 8px;
-            text-align: center;
-            font-size: 14px;
-        }
-
-        @media (max-width: 768px) {
-            .income-expense {
-                flex-direction: column;
-            }
-            
-            .income, .expense {
-                width: 100%;
-            }
-        }
-
-        @media (max-width: 480px) {
-            body {
-                padding: 12px;
-            }
-            
-            .balance-amount {
-                font-size: 32px;
-            }
-            
-            .income, .expense {
-                padding: 14px;
-            }
-            
-            .income div, .expense div {
-                font-size: 16px;
-            }
-            
-            button {
-                padding: 16px;
-            }
-            
-            .theme-toggle, .theme-selector {
-                width: 56px;
-                height: 56px;
-                bottom: 20px;
-                right: 20px;
-            }
-            
-            .theme-selector {
-                bottom: 86px;
-            }
-            
-            .theme-options {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .balance-card, .transactions, .add-transaction, .transaction-item {
-            transition: all 0.3s ease;
-        }
-
-        .dark-theme .balance-card h2,
-        .dark-theme .transactions h2,
-        .dark-theme .add-transaction h2,
-        .dark-theme header h1,
-        .dark-theme header p {
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-        }
-
-        .dark-theme .income {
-            background: rgba(52, 199, 89, 0.15);
-        }
-
-        .dark-theme .expense {
-            background: rgba(255, 59, 48, 0.15);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Финансовый помощник</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --primary-color: #40a7e3;
+      --income-color: #34C759;
+      --expense-color: #FF3B30;
+      --bg-color: #F2F2F7;
+      --card-bg: rgba(255, 255, 255, 0.85);
+      --text-color: #000000;
+      --header-text: #1C1C1E;
+      --secondary-text: #8E8E93;
+      --border-radius: 16px;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      --blur: blur(15px);
+    }
+    .dark-theme {
+      --primary-color: #64b5f6;
+      --income-color: #30D158;
+      --expense-color: #FF453A;
+      --bg-color: #000000;
+      --card-bg: rgba(30, 30, 30, 0.85);
+      --text-color: #FFFFFF;
+      --header-text: #FFFFFF;
+      --secondary-text: #8E8E93;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: system-ui, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding: 16px;
+      transition: background-color 0.3s, color 0.3s, background-image 0.5s ease;
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      min-height: 100vh;
+    }
+    header, .balance-card, .transactions, .add-transaction {
+      background: var(--card-bg);
+      backdrop-filter: var(--blur);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; color: var(--header-text); }
+    .balance-amount { font-size: 36px; font-weight: 800; margin: 16px 0; }
+    .income-expense { display: flex; gap: 12px; }
+    .income, .expense { flex: 1; padding: 14px; border-radius: 14px; }
+    .income { background: rgba(52,199,89,0.2); color: var(--income-color); }
+    .expense { background: rgba(255,59,48,0.2); color: var(--expense-color); }
+    .transaction-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px; margin: 6px 0; border-radius: 12px;
+      background: rgba(255,255,255,0.6); backdrop-filter: blur(10px);
+    }
+    .dark-theme .transaction-item { background: rgba(255,255,255,0.15); }
+    .transaction-details { flex: 1; margin-left: 12px; }
+    .transaction-amount.income { color: var(--income-color); }
+    .transaction-amount.expense { color: var(--expense-color); }
+    .actions button { border: none; background: none; cursor: pointer; font-size: 18px; margin-left: 8px; }
+    label { font-weight: 600; margin-bottom: 6px; display: block; }
+    input, select {
+      width: 100%; padding: 12px; border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.1); margin-bottom: 12px;
+    }
+    button {
+      padding: 12px; border: none; border-radius: 10px;
+      font-weight: 700; cursor: pointer; flex: 1;
+    }
+    .btn-income { background: var(--income-color); color: white; }
+    .btn-expense { background: var(--expense-color); color: white; }
+    .btn-group { display: flex; gap: 10px; }
+    .theme-toggle, .theme-selector {
+      position: fixed; right: 20px; width: 50px; height: 50px;
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-size: 22px; cursor: pointer; z-index: 1000;
+    }
+    .theme-toggle { bottom: 20px; background: #333; color: white; }
+    .theme-selector { bottom: 80px; background: #333; color: white; }
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.8); color: white; padding: 10px 20px;
+      border-radius: 8px; opacity: 0; transition: opacity 0.3s, bottom 0.3s;
+      z-index: 2000;
+    }
+    .toast.show { opacity: 1; bottom: 40px; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Финансовый помощник</h1>
-            <p>Учет доходов и расходов</p>
-        </header>
-        
-        <div class="balance-card">
-            <h2>Ваш баланс</h2>
-            <div class="balance-amount" id="balance">0 ₽</div>
-            <div class="income-expense">
-                <div class="income">
-                    <h3>Доходы</h3>
-                    <div id="income-total">0 ₽</div>
-                </div>
-                <div class="expense">
-                    <h3>Расходы</h3>
-                    <div id="expense-total">0 ₽</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="transactions">
-            <h2>Последние операции</h2>
-            <div class="transaction-list" id="transaction-list">
-                <div class="empty-state">Нет операций</div>
-            </div>
-        </div>
-        
-        <div class="add-transaction">
-            <h2>Добавить операцию</h2>
-            <div class="form-group">
-                <label for="description">Описание</label>
-                <input type="text" id="description" placeholder="На что потратили или откуда доход?">
-            </div>
-            <div class="form-group">
-                <label for="amount">Сумма (₽)</label>
-                <input type="number" id="amount" placeholder="0">
-            </div>
-            <div class="form-group">
-                <label for="category">Категория</label>
-                <select id="category">
-                    <option value="">Выберите категорие</option>
-                    <optgroup label="Доходы">
-                        <option value="salary">Зарплата</option>
-                        <option value="freelance">Фриланс</option>
-                        <option value="investment">Инвестиции</option>
-                        <option value="gift">Подарки</option>
-                        <option value="other-income">Другой доход</option>
-                    </optgroup>
-                    <optgroup label="Расходы">
-                        <option value="products">Продукты</option>
-                        <option value="transport">Транспорт</option>
-                        <option value="house">Жилье</option>
-                        <option value="cafe">Кафе и рестораны</option>
-                        <option value="health">Здоровье</option>
-                        <option value="entertainment">Развлечения</option>
-                        <option value="clothes">Одежда</option>
-                        <option value="other-expense">Другие расходы</option>
-                    </optgroup>
-                </select>
-            </div>
-            <div class="btn-group">
-                <button class="btn-income" onclick="addTransaction('income')">Доход</button>
-                <button class="btn-expense" onclick="addTransaction('expense')">Расход</button>
-            </div>
-        </div>
-        
-        <div class="theme-toggle" onclick="toggleTheme()">
-            🌙
-        </div>
-        
-        <div class="theme-selector" onclick="openThemeModal()">
-            🖼
-        </div>
+  <header>
+    <h1>Финансовый помощник</h1>
+    <p>Учет доходов и расходов</p>
+  </header>
+  <div class="balance-card">
+    <h2>Баланс</h2>
+    <div class="balance-amount" id="balance">0 ₽</div>
+    <div class="income-expense">
+      <div class="income"><h3>Доходы</h3><div id="income-total">0 ₽</div></div>
+      <div class="expense"><h3>Расходы</h3><div id="expense-total">0 ₽</div></div>
     </div>
-
-    <div class="theme-modal" id="themeModal">
-        <div class="theme-modal-content">
-            <h2>Выберите фон</h2>
-            
-            <div class="theme-options">
-                <div class="theme-option" data-bg="https://i.pinimg.com/736x/76/f2/e1/76f2e1b76920a1540982ee3b67cd22a8.jpg">
-                    <img src="https://i.pinimg.com/736x/76/f2/e1/76f2e1b76920a1540982ee3b67cd22a8.jpg" alt="Фон 1">
-                    <div class="theme-option-overlay">black and white flowers</div>
-                </div>
-                
-                <div class="theme-option" data-bg="https://i.pinimg.com/736x/13/8b/08/138b0800ed24891e646211cbaad2a757.jpg">
-                    <img src="https://i.pinimg.com/736x/13/8b/08/138b0800ed24891e646211cbaad2a757.jpg" alt="Фон 2">
-                    <div class="theme-option-overlay">black and white abstraction</div>
-                </div>
-                
-                <div class="theme-option" data-bg="https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg">
-                    <img src="https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg" alt="Фон 3">
-                    <div class="theme-option-overlay">End of Evangelion</div>
-                </div>
-                
-                <div class="theme-option" data-bg="https://i.pinimg.com/736x/54/1e/15/541e15f7caf03a50ea5d9f33625ae1f5.jpg">
-                    <img src="https://i.pinimg.com/736x/54/1e/15/541e15f7caf03a50ea5d9f33625ae1f5.jpg" alt="Фон 4">
-                    <div class="theme-option-overlay">Rei Ayanami</div>
-                </div>
-                
-                <div class="theme-option" data-bg="https://i.pinimg.com/1200x/e8/73/86/e8738644ceea3c8a3d29a798e71004d9.jpg">
-                    <img src="https://i.pinimg.com/1200x/e8/73/86/e8738644ceea3c8a3d29a798e71004d9.jpg" alt="Фон 5">
-                    <div class="theme-option-overlay">Licorice</div>
-                </div>
-                
-                <div class="theme-option" data-bg="https://i.pinimg.com/originals/a1/5d/77/a15d778b429a19c336014b27a389e2f8.gif">
-                    <img src="https://i.pinimg.com/originals/a1/5d/77/a15d778b429a19c336014b27a389e2f8.gif" alt="Анимированный фон">
-                    <div class="theme-option-overlay">Cosmic eye</div>
-                </div>
-                
-                <div class="theme-option" data-bg="https://i.pinimg.com/1200x/33/57/c4/3357c441beb65bf14253b5f8a75c275a.jpg">
-                    <img src="https://i.pinimg.com/1200x/33/57/c4/3357c441beb65bf14253b5f8a75c275a.jpg" alt="Фон 6">
-                    <div class="theme-option-overlay">Little vampire</div>
-                </div>
-            </div>
-        </div>
+  </div>
+  <div class="transactions">
+    <h2>Операции</h2>
+    <div id="transaction-list"><div class="empty">Нет операций</div></div>
+  </div>
+  <div class="add-transaction">
+    <h2>Добавить операцию</h2>
+    <label>Описание</label>
+    <input type="text" id="description">
+    <label>Сумма (₽)</label>
+    <input type="number" id="amount">
+    <label>Категория</label>
+    <select id="category">
+      <option value="">Выберите</option>
+      <optgroup label="Доходы">
+        <option value="salary">Зарплата</option>
+        <option value="freelance">Фриланс</option>
+        <option value="other-income">Другое</option>
+      </optgroup>
+      <optgroup label="Расходы">
+        <option value="products">Продукты</option>
+        <option value="transport">Транспорт</option>
+        <option value="other-expense">Другое</option>
+      </optgroup>
+    </select>
+    <div class="btn-group">
+      <button class="btn-income" onclick="app.addTransaction('income')">Доход</button>
+      <button class="btn-expense" onclick="app.addTransaction('expense')">Расход</button>
     </div>
-
-    <script>
-    // Инициализация Telegram WebApp
-    let tg = window.Telegram.WebApp;
-    tg.expand();
-    
-    // Инициализация данных
-    let transactions = [];
-    let isDarkTheme = false;
-    let currentBackground = 'https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg';
-
-    // Функция для форматирования чисел с разделителями тысяч
-    function formatNumber(number) {
-        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-    }
-
-    // Функция загрузки данных
-    function loadData() {
-        // Пытаемся загрузить данные из Telegram CloudStorage
-        tg.CloudStorage.getItem('transactions', function(err, data) {
-            if (!err && data) {
-                try {
-                    transactions = JSON.parse(data);
-                } catch (e) {
-                    console.error('Error parsing transactions data:', e);
-                    transactions = [];
-                }
-            } else {
-                // Если в CloudStorage нет данных, пробуем загрузить из localStorage
-                transactions = JSON.parse(localStorage.getItem('transactions')) || [];
-            }
-            
-            // Загружаем тему
-            tg.CloudStorage.getItem('isDarkTheme', function(err, data) {
-                if (!err && data) {
-                    isDarkTheme = data === 'true';
-                } else {
-                    isDarkTheme = localStorage.getItem('isDarkTheme') === 'true';
-                }
-                
-                // Загружаем фон
-                tg.CloudStorage.getItem('background', function(err, data) {
-                    if (!err && data) {
-                        currentBackground = data;
-                    } else {
-                        currentBackground = localStorage.getItem('background') || 'https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg';
-                    }
-                    
-                    updateUI();
-                    applyTheme();
-                });
-            });
-        });
-    }
-
-    // Функция сохранения данных
-    function saveData() {
-        // Сохраняем в Telegram CloudStorage
-        tg.CloudStorage.setItem('transactions', JSON.stringify(transactions), function(err) {
-            if (err) {
-                console.error('Error saving to CloudStorage:', err);
-                // Если не удалось сохранить в CloudStorage, сохраняем в localStorage
-                localStorage.setItem('transactions', JSON.stringify(transactions));
-            }
-        });
-        
-        tg.CloudStorage.setItem('isDarkTheme', isDarkTheme.toString(), function(err) {
-            if (err) {
-                localStorage.setItem('isDarkTheme', isDarkTheme.toString());
-            }
-        });
-        
-        tg.CloudStorage.setItem('background', currentBackground, function(err) {
-            if (err) {
-                localStorage.setItem('background', currentBackground);
-            }
-        });
-    }
-    
-    // Применение темы
-    function applyTheme() {
-        // Применяем цветовую тему
-        if (isDarkTheme) {
-            document.body.classList.add('dark-theme');
-            document.querySelector('.theme-toggle').textContent = '☀️';
-        } else {
-            document.body.classList.remove('dark-theme');
-            document.querySelector('.theme-toggle').textContent = '🌙';
-        }
-        
-        // Применяем фоновое изображение
-        document.body.style.backgroundImage = `url('${currentBackground}')`;
-        
-        // Показываем выбранный фон в модальном окне
-        document.querySelectorAll('.theme-option').forEach(option => {
-            option.classList.remove('selected');
-            if (option.getAttribute('data-bg') === currentBackground) {
-                option.classList.add('selected');
-            }
-        });
-    }
-    
-    // Переключение темы
-    function toggleTheme() {
-        isDarkTheme = !isDarkTheme;
-        applyTheme();
-        saveData();
-    }
-    
-    // Открытие модального окна выбора фона
-    function openThemeModal() {
-        document.getElementById('themeModal').style.display = 'flex';
-    }
-    
-    // Закрытие модального окна
-    function closeThemeModal() {
-        document.getElementById('themeModal').style.display = 'none';
-    }
-    
-    // Выбор фона
-    function selectBackground(bgUrl) {
-        currentBackground = bgUrl;
-        applyTheme();
-        saveData();
-        closeThemeModal();
-        
-        // Показать уведомление
-        setTimeout(() => alert('Фон изменен!'), 300);
-    }
-    
-    // Обновление UI
-    function updateUI() {
-        const balanceElement = document.getElementById('balance');
-        const incomeTotalElement = document.getElementById('income-total');
-        const expenseTotalElement = document.getElementById('expense-total');
-        const transactionListElement = document.getElementById('transaction-list');
-        
-        // Расчет баланса, доходов и расходов
-        const amounts = transactions.map(transaction => {
-            if (transaction.type === 'income') {
-                return transaction.amount;
-            } else {
-                return -transaction.amount;
-            }
-        });
-        
-        const total = amounts.reduce((acc, item) => acc + item, 0).toFixed(2);
-        const income = amounts.filter(item => item > 0).reduce((acc, item) => acc + item, 0).toFixed(2);
-        const expense = (amounts.filter(item => item < 0).reduce((acc, item) => acc + item, 0) * -1).toFixed(2);
-        
-        // Обновление элементов с форматированием чисел
-        balanceElement.textContent = `${formatNumber(total)} ₽`;
-        incomeTotalElement.textContent = `${formatNumber(income)} ₽`;
-        expenseTotalElement.textContent = `${formatNumber(expense)} ₽`;
-        
-        // Обновление списка транзакций
-        if (transactions.length === 0) {
-            transactionListElement.innerHTML = '<div class="empty-state">Нет операций</div>';
-        } else {
-            transactionListElement.innerHTML = '';
-            transactions.slice().reverse().forEach(transaction => {
-                const transactionElement = document.createElement('div');
-                transactionElement.className = 'transaction-item';
-                
-                const emojiMap = {
-                    'salary': '💼',
-                    'freelance': '💻',
-                    'investment': '📈',
-                    'gift': '🎁',
-                    'other-income': '💰',
-                    'products': '🍎',
-                    'transport': '🚗',
-                    'house': '🏠',
-                    'cafe': '🍔',
-                    'health': '💊',
-                    'entertainment': '🎬',
-                    'clothes': '👕',
-                    'other-expense': '💸'
-                };
-                
-                transactionElement.innerHTML = `
-                    <div>${emojiMap[transaction.category] || '💰'}</div>
-                    <div class="transaction-details">
-                        <div>${transaction.description}</div>
-                        <div class="transaction-category">${getCategoryName(transaction.category)}</div>
-                    </div>
-                    <div class="transaction-amount ${transaction.type}">
-                        ${transaction.type === 'income' ? '+' : '-'} ${formatNumber(transaction.amount)} ₽
-                    </div>
-                `;
-                
-                transactionListElement.appendChild(transactionElement);
-            });
-        }
-    }
-    
-    // Получение названия категории
-    function getCategoryName(category) {
-        const categories = {
-            'salary': 'Зарплата',
-            'freelance': 'Фриланс',
-            'investment': 'Инвестиции',
-            'gift': 'Подарки',
-            'other-income': 'Другой доход',
-            'products': 'Продукты',
-            'transport': 'Транспорт',
-            'house': 'Жилье',
-            'cafe': 'Кафе и рестораны',
-            'health': 'Здоровье',
-            'entertainment': 'Развлечения',
-            'clothes': 'Одежда',
-            'other-expense': 'Другие расходы'
-        };
-        
-        return categories[category] || 'Неизвестно';
-    }
-    
-    // Добавление транзакции
-    function addTransaction(type) {
-        const description = document.getElementById('description').value;
-        const amount = parseFloat(document.getElementById('amount').value);
-        const category = document.getElementById('category').value;
-        
-        if (!description || isNaN(amount) || amount <= 0 || !category) {
-            alert('Заполните все поля правильно');
-            return;
-        }
-        
-        const transaction = {
-            id: Date.now(),
-            type,
-            description,
-            amount,
-            category,
-            date: new Date().toLocaleDateString('ru-RU')
-        };
-        
-        transactions.push(transaction);
-        saveData();
-        
-        // Очистка формы
-        document.getElementById('description').value = '';
-        document.getElementById('amount').value = '';
-        document.getElementById('category').value = '';
-        
-        // Обновление UI
-        updateUI();
-        
-        // Показать уведомление
-        alert(`${type === 'income' ? 'Доход' : 'Расход'} добавлен`);
-    }
-    
-    // Инициализация приложения
-    loadData();
-    
-    // Закрытие модального окна при клике вне его
-    window.onclick = function(event) {
-        const modal = document.getElementById('themeModal');
-        if (event.target === modal) {
-            closeThemeModal();
-        }
-    }
-    
-    // Обработчики для выбора фона
-    document.querySelectorAll('.theme-option').forEach(option => {
-        option.addEventListener('click', function() {
-            selectBackground(this.getAttribute('data-bg'));
-        });
+  </div>
+  <div class="theme-toggle" onclick="app.toggleTheme()">🌙</div>
+  <div class="theme-selector" onclick="app.changeBackground()">🖼</div>
+  <div id="toast" class="toast"></div>
+<script>
+class TransactionManager {
+  constructor() {
+    this.transactions = [];
+    this.isDark = false;
+    this.bg = '';
+    this.tg = window.Telegram.WebApp;
+    this.tg.expand();
+    this.load();
+  }
+  format(n) {
+    return new Intl.NumberFormat('ru-RU').format(n);
+  }
+  showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),2000);
+  }
+  save() {
+    localStorage.setItem('transactions', JSON.stringify(this.transactions));
+    localStorage.setItem('isDark', this.isDark);
+    localStorage.setItem('bg', this.bg);
+  }
+  load() {
+    this.transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+    this.isDark = localStorage.getItem('isDark')==='true';
+    this.bg = localStorage.getItem('bg') || 'https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg';
+    this.applyTheme();
+    this.render();
+  }
+  addTransaction(type) {
+    const desc = document.getElementById('description').value.trim();
+    const amt = parseFloat(document.getElementById('amount').value);
+    const cat = document.getElementById('category').value;
+    if(!desc || !amt || amt<=0 || !cat) return this.showToast('Заполните поля');
+    const t = {id:Date.now(),type,description:desc,amount:amt,category:cat,date:new Date().toISOString()};
+    this.transactions.push(t);
+    this.save();
+    this.render();
+    document.getElementById('description').value='';
+    document.getElementById('amount').value='';
+    document.getElementById('category').value='';
+    this.showToast((type==='income'?'Доход':'Расход')+' добавлен');
+  }
+  deleteTransaction(id) {
+    this.transactions = this.transactions.filter(t=>t.id!==id);
+    this.save(); this.render(); this.showToast('Удалено');
+  }
+  editTransaction(id) {
+    const t = this.transactions.find(x=>x.id===id);
+    if(!t) return;
+    document.getElementById('description').value=t.description;
+    document.getElementById('amount').value=t.amount;
+    document.getElementById('category').value=t.category;
+    this.transactions = this.transactions.filter(x=>x.id!==id);
+    this.save(); this.render();
+    this.showToast('Редактируйте и сохраните снова');
+  }
+  render() {
+    const bal=document.getElementById('balance');
+    const inc=document.getElementById('income-total');
+    const exp=document.getElementById('expense-total');
+    const list=document.getElementById('transaction-list');
+    if(this.transactions.length===0){list.innerHTML='<div class="empty">Нет операций</div>';return;}
+    let total=0,income=0,expense=0;
+    list.innerHTML='';
+    this.transactions.slice().reverse().forEach(t=>{
+      if(t.type==='income') income+=t.amount; else expense+=t.amount;
+      total+=(t.type==='income'?t.amount:-t.amount);
+      const item=document.createElement('div');
+      item.className='transaction-item';
+      const date=new Date(t.date).toLocaleDateString('ru-RU');
+      item.innerHTML=`
+        <div>💰</div>
+        <div class="transaction-details">
+          <div>${t.description}</div>
+          <div class="transaction-category">${date}</div>
+        </div>
+        <div class="transaction-amount ${t.type}">${t.type==='income'?'+':'-'} ${this.format(t.amount)} ₽</div>
+        <div class="actions">
+          <button onclick="app.editTransaction(${t.id})">✏️</button>
+          <button onclick="app.deleteTransaction(${t.id})">🗑</button>
+        </div>`;
+      list.appendChild(item);
     });
+    bal.textContent=this.format(total)+' ₽';
+    inc.textContent=this.format(income)+' ₽';
+    exp.textContent=this.format(expense)+' ₽';
+  }
+  toggleTheme(){
+    this.isDark=!this.isDark;
+    this.applyTheme(); this.save();
+  }
+  applyTheme(){
+    if(this.isDark){document.body.classList.add('dark-theme');document.querySelector('.theme-toggle').textContent='☀️';}
+    else {document.body.classList.remove('dark-theme');document.querySelector('.theme-toggle').textContent='🌙';}
+    document.body.style.backgroundImage=`url('${this.bg}')`;
+  }
+  changeBackground(){
+    const urls=[
+      'https://i.pinimg.com/736x/76/f2/e1/76f2e1b76920a1540982ee3b67cd22a8.jpg',
+      'https://i.pinimg.com/736x/13/8b/08/138b0800ed24891e646211cbaad2a757.jpg',
+      'https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg'
+    ];
+    const next=urls[(urls.indexOf(this.bg)+1)%urls.length];
+    this.bg=next; this.applyTheme(); this.save();
+    this.showToast('Фон изменен');
+  }
+}
+const app=new TransactionManager();
 </script>
 </body>
 </html>
