@@ -93,6 +93,7 @@
       z-index: 2000;
     }
     .toast.show { opacity: 1; bottom: 40px; }
+    .loading { text-align: center; padding: 20px; }
   </style>
 </head>
 <body>
@@ -110,7 +111,9 @@
   </div>
   <div class="transactions">
     <h2>Операции</h2>
-    <div id="transaction-list"><div class="empty">Нет операций</div></div>
+    <div id="transaction-list">
+      <div class="loading">Загрузка данных...</div>
+    </div>
   </div>
   <div class="add-transaction">
     <h2>Добавить операцию</h2>
@@ -140,6 +143,7 @@
   <div class="theme-toggle" onclick="app.toggleTheme()">🌙</div>
   <div class="theme-selector" onclick="app.changeBackground()">🖼</div>
   <div id="toast" class="toast"></div>
+  
 <script>
 class TransactionManager {
   constructor() {
@@ -147,110 +151,304 @@ class TransactionManager {
     this.isDark = false;
     this.bg = '';
     this.tg = window.Telegram.WebApp;
+    
+    // Инициализация Telegram WebApp
     this.tg.expand();
-    this.load();
+    this.tg.ready();
+    
+    // Загружаем данные из облачного хранилища
+    this.loadFromCloud();
   }
+
   format(n) {
     return new Intl.NumberFormat('ru-RU').format(n);
   }
+
   showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.classList.add('show');
-    setTimeout(()=>t.classList.remove('show'),2000);
+    setTimeout(() => t.classList.remove('show'), 2000);
   }
-  save() {
-    localStorage.setItem('transactions', JSON.stringify(this.transactions));
-    localStorage.setItem('isDark', this.isDark);
-    localStorage.setItem('bg', this.bg);
+
+  // Сохраняем в облачное хранилище Telegram
+  async saveToCloud() {
+    try {
+      const data = {
+        transactions: this.transactions,
+        isDark: this.isDark,
+        bg: this.bg,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      await new Promise((resolve, reject) => {
+        this.tg.CloudStorage.setItem('finance_data', JSON.stringify(data), (error) => {
+          if (error) {
+            console.error('Ошибка сохранения в облако:', error);
+            reject(error);
+          } else {
+            resolve();
+          }
+        });
+      });
+      
+      // Также сохраняем локально для быстрого доступа
+      localStorage.setItem('finance_data', JSON.stringify(data));
+      
+      return true;
+    } catch (error) {
+      console.error('Ошибка при сохранении:', error);
+      this.showToast('Ошибка сохранения');
+      return false;
+    }
   }
-  load() {
-    this.transactions = JSON.parse(localStorage.getItem('transactions')) || [];
-    this.isDark = localStorage.getItem('isDark')==='true';
-    this.bg = localStorage.getItem('bg') || 'https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg';
-    this.applyTheme();
-    this.render();
+
+  // Загружаем из облачного хранилища Telegram
+  async loadFromCloud() {
+    try {
+      // Показываем индикатор загрузки
+      document.getElementById('transaction-list').innerHTML = '<div class="loading">Загрузка данных...</div>';
+      
+      // Пробуем загрузить из локального хранилища для скорости
+      const localData = localStorage.getItem('finance_data');
+      if (localData) {
+        const parsed = JSON.parse(localData);
+        this.transactions = parsed.transactions || [];
+        this.isDark = parsed.isDark || false;
+        this.bg = parsed.bg || 'https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg';
+        this.applyTheme();
+        this.render();
+      }
+      
+      // Загружаем из облака (асинхронно)
+      await new Promise((resolve, reject) => {
+        this.tg.CloudStorage.getItem('finance_data', (error, cloudData) => {
+          if (error) {
+            console.error('Ошибка загрузки из облака:', error);
+            reject(error);
+          } else {
+            if (cloudData) {
+              try {
+                const parsed = JSON.parse(cloudData);
+                // Используем данные из облака если они новее
+                if (parsed.lastUpdated) {
+                  const localData = localStorage.getItem('finance_data');
+                  if (localData) {
+                    const localParsed = JSON.parse(localData);
+                    if (!localParsed.lastUpdated || new Date(parsed.lastUpdated) > new Date(localParsed.lastUpdated)) {
+                      this.transactions = parsed.transactions || [];
+                      this.isDark = parsed.isDark || false;
+                      this.bg = parsed.bg || 'https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg';
+                      this.applyTheme();
+                      this.render();
+                      localStorage.setItem('finance_data', cloudData);
+                    }
+                  } else {
+                    this.transactions = parsed.transactions || [];
+                    this.isDark = parsed.isDark || false;
+                    this.bg = parsed.bg || 'https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg';
+                    this.applyTheme();
+                    this.render();
+                    localStorage.setItem('finance_data', cloudData);
+                  }
+                }
+              } catch (e) {
+                console.error('Ошибка парсинга данных:', e);
+              }
+            }
+            resolve();
+          }
+        });
+      });
+      
+      this.showToast('Данные загружены');
+      
+    } catch (error) {
+      console.error('Ошибка при загрузке:', error);
+      // Если совсем нет данных, создаем пустые
+      if (!this.transactions.length) {
+        this.transactions = [];
+        this.isDark = false;
+        this.bg = 'https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg';
+        this.applyTheme();
+        this.render();
+      }
+    }
   }
-  addTransaction(type) {
+
+  async addTransaction(type) {
     const desc = document.getElementById('description').value.trim();
     const amt = parseFloat(document.getElementById('amount').value);
     const cat = document.getElementById('category').value;
-    if(!desc || !amt || amt<=0 || !cat) return this.showToast('Заполните поля');
-    const t = {id:Date.now(),type,description:desc,amount:amt,category:cat,date:new Date().toISOString()};
+    
+    if (!desc || !amt || amt <= 0 || !cat) {
+      this.showToast('Заполните все поля');
+      return;
+    }
+
+    const t = {
+      id: Date.now(),
+      type,
+      description: desc,
+      amount: amt,
+      category: cat,
+      date: new Date().toISOString()
+    };
+
     this.transactions.push(t);
-    this.save();
-    this.render();
-    document.getElementById('description').value='';
-    document.getElementById('amount').value='';
-    document.getElementById('category').value='';
-    this.showToast((type==='income'?'Доход':'Расход')+' добавлен');
+    
+    const saved = await this.saveToCloud();
+    if (saved) {
+      this.render();
+      document.getElementById('description').value = '';
+      document.getElementById('amount').value = '';
+      document.getElementById('category').value = '';
+      this.showToast((type === 'income' ? 'Доход' : 'Расход') + ' добавлен');
+    }
   }
-  deleteTransaction(id) {
-    this.transactions = this.transactions.filter(t=>t.id!==id);
-    this.save(); this.render(); this.showToast('Удалено');
+
+  async deleteTransaction(id) {
+    this.transactions = this.transactions.filter(t => t.id !== id);
+    const saved = await this.saveToCloud();
+    if (saved) {
+      this.render();
+      this.showToast('Удалено');
+    }
   }
+
   editTransaction(id) {
-    const t = this.transactions.find(x=>x.id===id);
-    if(!t) return;
-    document.getElementById('description').value=t.description;
-    document.getElementById('amount').value=t.amount;
-    document.getElementById('category').value=t.category;
-    this.transactions = this.transactions.filter(x=>x.id!==id);
-    this.save(); this.render();
+    const t = this.transactions.find(x => x.id === id);
+    if (!t) return;
+
+    document.getElementById('description').value = t.description;
+    document.getElementById('amount').value = t.amount;
+    document.getElementById('category').value = t.category;
+
+    this.transactions = this.transactions.filter(x => x.id !== id);
+    this.saveToCloud();
+    this.render();
     this.showToast('Редактируйте и сохраните снова');
   }
+
   render() {
-    const bal=document.getElementById('balance');
-    const inc=document.getElementById('income-total');
-    const exp=document.getElementById('expense-total');
-    const list=document.getElementById('transaction-list');
-    if(this.transactions.length===0){list.innerHTML='<div class="empty">Нет операций</div>';return;}
-    let total=0,income=0,expense=0;
-    list.innerHTML='';
-    this.transactions.slice().reverse().forEach(t=>{
-      if(t.type==='income') income+=t.amount; else expense+=t.amount;
-      total+=(t.type==='income'?t.amount:-t.amount);
-      const item=document.createElement('div');
-      item.className='transaction-item';
-      const date=new Date(t.date).toLocaleDateString('ru-RU');
-      item.innerHTML=`
+    const bal = document.getElementById('balance');
+    const inc = document.getElementById('income-total');
+    const exp = document.getElementById('expense-total');
+    const list = document.getElementById('transaction-list');
+
+    if (this.transactions.length === 0) {
+      list.innerHTML = '<div class="empty">Нет операций</div>';
+      bal.textContent = '0 ₽';
+      inc.textContent = '0 ₽';
+      exp.textContent = '0 ₽';
+      return;
+    }
+
+    let total = 0, income = 0, expense = 0;
+    list.innerHTML = '';
+
+    // Сортируем по дате (новые сверху)
+    const sortedTransactions = [...this.transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    sortedTransactions.forEach(t => {
+      if (t.type === 'income') {
+        income += t.amount;
+        total += t.amount;
+      } else {
+        expense += t.amount;
+        total -= t.amount;
+      }
+
+      const item = document.createElement('div');
+      item.className = 'transaction-item';
+      const date = new Date(t.date).toLocaleDateString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+
+      item.innerHTML = `
         <div>💰</div>
         <div class="transaction-details">
-          <div>${t.description}</div>
-          <div class="transaction-category">${date}</div>
+          <div><strong>${t.description}</strong></div>
+          <div class="transaction-category">${date} • ${this.getCategoryName(t.category)}</div>
         </div>
-        <div class="transaction-amount ${t.type}">${t.type==='income'?'+':'-'} ${this.format(t.amount)} ₽</div>
+        <div class="transaction-amount ${t.type}">${t.type === 'income' ? '+' : '-'} ${this.format(t.amount)} ₽</div>
         <div class="actions">
-          <button onclick="app.editTransaction(${t.id})">✏️</button>
-          <button onclick="app.deleteTransaction(${t.id})">🗑</button>
+          <button onclick="app.editTransaction(${t.id})" title="Редактировать">✏️</button>
+          <button onclick="app.deleteTransaction(${t.id})" title="Удалить">🗑</button>
         </div>`;
       list.appendChild(item);
     });
-    bal.textContent=this.format(total)+' ₽';
-    inc.textContent=this.format(income)+' ₽';
-    exp.textContent=this.format(expense)+' ₽';
+
+    bal.textContent = this.format(total) + ' ₽';
+    inc.textContent = this.format(income) + ' ₽';
+    exp.textContent = this.format(expense) + ' ₽';
   }
-  toggleTheme(){
-    this.isDark=!this.isDark;
-    this.applyTheme(); this.save();
+
+  getCategoryName(category) {
+    const categories = {
+      'salary': 'Зарплата',
+      'freelance': 'Фриланс',
+      'other-income': 'Доходы',
+      'products': 'Продукты',
+      'transport': 'Транспорт',
+      'other-expense': 'Расходы'
+    };
+    return categories[category] || category;
   }
-  applyTheme(){
-    if(this.isDark){document.body.classList.add('dark-theme');document.querySelector('.theme-toggle').textContent='☀️';}
-    else {document.body.classList.remove('dark-theme');document.querySelector('.theme-toggle').textContent='🌙';}
-    document.body.style.backgroundImage=`url('${this.bg}')`;
+
+  async toggleTheme() {
+    this.isDark = !this.isDark;
+    this.applyTheme();
+    await this.saveToCloud();
   }
-  changeBackground(){
-    const urls=[
+
+  applyTheme() {
+    if (this.isDark) {
+      document.body.classList.add('dark-theme');
+      document.querySelector('.theme-toggle').textContent = '☀️';
+    } else {
+      document.body.classList.remove('dark-theme');
+      document.querySelector('.theme-toggle').textContent = '🌙';
+    }
+    document.body.style.backgroundImage = `url('${this.bg}')`;
+  }
+
+  async changeBackground() {
+    const urls = [
       'https://i.pinimg.com/736x/76/f2/e1/76f2e1b76920a1540982ee3b67cd22a8.jpg',
       'https://i.pinimg.com/736x/13/8b/08/138b0800ed24891e646211cbaad2a757.jpg',
       'https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg'
     ];
-    const next=urls[(urls.indexOf(this.bg)+1)%urls.length];
-    this.bg=next; this.applyTheme(); this.save();
+    const next = urls[(urls.indexOf(this.bg) + 1) % urls.length];
+    this.bg = next;
+    this.applyTheme();
+    await this.saveToCloud();
     this.showToast('Фон изменен');
   }
+
+  async syncData() {
+    this.showToast('Синхронизация...');
+    await this.loadFromCloud();
+  }
 }
-const app=new TransactionManager();
+
+const app = new TransactionManager();
+
+document.addEventListener('DOMContentLoaded', () => {
+  const syncBtn = document.createElement('div');
+  syncBtn.className = 'theme-selector';
+  syncBtn.style.bottom = '140px';
+  syncBtn.textContent = '🔄';
+  syncBtn.title = 'Синхронизировать';
+  syncBtn.onclick = () => app.syncData();
+  document.body.appendChild(syncBtn);
+  
+  window.addEventListener('focus', () => {
+    app.syncData();
+  });
+});
 </script>
 </body>
 </html>
