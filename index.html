@@ -138,27 +138,39 @@ class FinanceApp {
     this.period = 'all';
     this.chart = null;
 
-    this.checkAccess();
+    // Ждем 500мс для загрузки Telegram API
+    setTimeout(() => this.checkAccess(), 500);
   }
 
   checkAccess() {
     const user = this.tg.initDataUnsafe?.user;
     const MY_REAL_ID = 953937928;
 
-    if (user) {
-      if (Number(user.id) === MY_REAL_ID) {
-        this.unlock();
-      } else {
-        document.getElementById('lock-screen').innerHTML = `
-          <div style="font-size: 50px;">❌</div>
-          <h1>Доступ запрещен</h1>
-          <p style="margin-top:10px; opacity:0.8;">Ваш ID: <b>${user.id}</b></p>
-        `;
-      }
+    if (user && Number(user.id) === MY_REAL_ID) {
+      this.unlock();
     } else if (localStorage.getItem('is_authenticated') === 'true') {
       this.unlock();
+    } else if (!user) {
+      // Если данных нет, ждем еще 1.5 секунды (медленный интернет)
+      document.getElementById('lock-status').innerText = "Синхронизация...";
+      setTimeout(() => {
+        const retryUser = this.tg.initDataUnsafe?.user;
+        if (retryUser && Number(retryUser.id) === MY_REAL_ID) {
+          this.unlock();
+        } else {
+          document.getElementById('lock-screen').innerHTML = `
+            <div style="font-size: 50px;">🔒</div>
+            <h1>Доступ ограничен</h1>
+            <p style="margin-top:10px; opacity:0.8;">Запустите приложение через бота.</p>
+          `;
+        }
+      }, 1500);
     } else {
-      document.getElementById('lock-status').innerText = "Запустите через бота для входа.";
+      document.getElementById('lock-screen').innerHTML = `
+        <div style="font-size: 50px;">❌</div>
+        <h1>Доступ запрещен</h1>
+        <p style="margin-top:10px; opacity:0.8;">ID: ${user.id} не авторизован.</p>
+      `;
     }
   }
 
@@ -180,10 +192,10 @@ class FinanceApp {
   async sync() {
     this.tg.CloudStorage.getItem('finance_data', (err, val) => {
       if (!err && val) {
-        this.data = JSON.parse(val);
+        try { this.data = JSON.parse(val); } catch(e) {}
       } else {
         const local = localStorage.getItem('finance_data');
-        if (local) this.data = JSON.parse(local);
+        if (local) try { this.data = JSON.parse(local); } catch(e) {}
       }
       this.applyTheme();
       this.render();
@@ -199,14 +211,17 @@ class FinanceApp {
 
   showToast(txt) {
     const el = document.getElementById('toast');
-    el.textContent = txt; el.classList.add('show');
-    setTimeout(() => el.classList.remove('show'), 2500);
+    if(el) {
+      el.textContent = txt; el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2500);
+    }
   }
 
   setPeriod(p) {
     this.period = p;
     document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('btn-' + p).classList.add('active');
+    const btn = document.getElementById('btn-' + p);
+    if(btn) btn.classList.add('active');
     this.render();
   }
 
@@ -249,6 +264,7 @@ class FinanceApp {
     let bal = 0, inc = 0, exp = 0;
     const cats = {};
     const listEl = document.getElementById('list');
+    if(!listEl) return;
     listEl.innerHTML = '';
 
     filtered.sort((a,b) => b.id - a.id).forEach(t => {
@@ -279,9 +295,12 @@ class FinanceApp {
   updateChart(cats) {
     const keys = Object.keys(cats);
     const card = document.getElementById('chart-card');
+    if(!card) return;
     if (!keys.length) { card.style.display='none'; return; }
     card.style.display='block';
-    const ctx = document.getElementById('mainChart').getContext('2d');
+    const ctxEl = document.getElementById('mainChart');
+    if(!ctxEl) return;
+    const ctx = ctxEl.getContext('2d');
     if (this.chart) this.chart.destroy();
     this.chart = new Chart(ctx, {
       type: 'doughnut',
