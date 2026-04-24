@@ -14,7 +14,6 @@
       --bg-color: #F2F2F7;
       --card-bg: rgba(255, 255, 255, 0.85);
       --text-color: #1c1c1e;
-      --secondary-text: #8E8E93;
       --border-radius: 20px;
       --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     }
@@ -36,8 +35,8 @@
       display: flex;
       justify-content: center;
     }
-    .app-container { width: 100%; max-width: 500px; padding: 16px; display: none; flex-direction: column; }
-    #lock-screen { display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; flex-direction: column; padding: 20px; width: 100%; }
+    /* Контейнер теперь виден сразу */
+    .app-container { width: 100%; max-width: 500px; padding: 16px; display: flex; flex-direction: column; }
     
     header, .balance-card, .analytics-card, .add-transaction, .transactions {
       background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
@@ -58,19 +57,13 @@
     .btn-group { display: flex; gap: 10px; }
     button.main-btn { flex: 1; padding: 16px; border: none; border-radius: 14px; color: white; font-weight: 700; cursor: pointer; }
     .transaction-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(142,142,147,0.15); }
-    .theme-btns { position: fixed; bottom: 25px; right: 25px; display: none; flex-direction: column; gap: 12px; z-index: 1000; }
+    .theme-btns { position: fixed; bottom: 25px; right: 25px; display: flex; flex-direction: column; gap: 12px; z-index: 1000; }
     .circle-btn { width: 50px; height: 50px; border-radius: 25px; background: rgba(44, 44, 46, 0.9); backdrop-filter: blur(10px); color: white; display: flex; align-items: center; justify-content: center; border: none; box-shadow: 0 8px 25px rgba(0,0,0,0.3); cursor: pointer; font-size: 22px; }
     .toast { position: fixed; top: 40px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: white; padding: 12px 25px; border-radius: 30px; font-size: 14px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 2000; }
     .toast.show { opacity: 1; }
   </style>
 </head>
 <body>
-
-  <div id="lock-screen">
-    <div style="font-size: 50px;">🔒</div>
-    <h1 style="margin-top:10px;">Приватный доступ</h1>
-    <p id="lock-status" style="opacity:0.6;">Идентификация пользователя...</p>
-  </div>
 
   <div class="app-container" id="main-app">
     <header>
@@ -138,47 +131,6 @@ class FinanceApp {
     this.period = 'all';
     this.chart = null;
 
-    // Ждем 500мс для загрузки Telegram API
-    setTimeout(() => this.checkAccess(), 500);
-  }
-
-  checkAccess() {
-    const user = this.tg.initDataUnsafe?.user;
-    const MY_REAL_ID = 953937928;
-
-    if (user && Number(user.id) === MY_REAL_ID) {
-      this.unlock();
-    } else if (localStorage.getItem('is_authenticated') === 'true') {
-      this.unlock();
-    } else if (!user) {
-      // Если данных нет, ждем еще 1.5 секунды (медленный интернет)
-      document.getElementById('lock-status').innerText = "Синхронизация...";
-      setTimeout(() => {
-        const retryUser = this.tg.initDataUnsafe?.user;
-        if (retryUser && Number(retryUser.id) === MY_REAL_ID) {
-          this.unlock();
-        } else {
-          document.getElementById('lock-screen').innerHTML = `
-            <div style="font-size: 50px;">🔒</div>
-            <h1>Доступ ограничен</h1>
-            <p style="margin-top:10px; opacity:0.8;">Запустите приложение через бота.</p>
-          `;
-        }
-      }, 1500);
-    } else {
-      document.getElementById('lock-screen').innerHTML = `
-        <div style="font-size: 50px;">❌</div>
-        <h1>Доступ запрещен</h1>
-        <p style="margin-top:10px; opacity:0.8;">ID: ${user.id} не авторизован.</p>
-      `;
-    }
-  }
-
-  unlock() {
-    localStorage.setItem('is_authenticated', 'true');
-    document.getElementById('lock-screen').style.display = 'none';
-    document.getElementById('main-app').style.display = 'flex';
-    document.getElementById('ui-buttons').style.display = 'flex';
     this.init();
   }
 
