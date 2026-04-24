@@ -16,14 +16,20 @@
       --text-color: #1c1c1e;
       --border-radius: 20px;
       --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      --input-bg: rgba(255, 255, 255, 0.7);
     }
-    .dark-theme {
+
+    /* Темная тема через класс на body */
+    body.dark-theme {
       --bg-color: #000000;
       --card-bg: rgba(28, 28, 30, 0.9);
       --text-color: #FFFFFF;
       --shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      --input-bg: rgba(44, 44, 46, 0.7);
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    
     body {
       font-family: -apple-system, system-ui, sans-serif;
       background-color: var(--bg-color);
@@ -34,33 +40,46 @@
       background-attachment: fixed;
       display: flex;
       justify-content: center;
+      transition: background-color 0.3s;
     }
-    /* Контейнер теперь виден сразу */
+
     .app-container { width: 100%; max-width: 500px; padding: 16px; display: flex; flex-direction: column; }
     
     header, .balance-card, .analytics-card, .add-transaction, .transactions {
       background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border-radius: var(--border-radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--border-radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); 
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
+
     h1 { font-size: 22px; margin-bottom: 15px; font-weight: 800; }
     h2 { font-size: 14px; opacity: 0.6; margin-bottom: 12px; text-transform: uppercase; }
+    
     .period-selector { display: flex; gap: 8px; margin-bottom: 5px; }
-    .period-btn { flex: 1; padding: 10px; border: none; border-radius: 12px; background: rgba(0,0,0,0.05); color: var(--text-color); font-size: 13px; cursor: pointer; }
+    .period-btn { flex: 1; padding: 10px; border: none; border-radius: 12px; background: rgba(120,120,128,0.1); color: var(--text-color); font-size: 13px; cursor: pointer; }
     .period-btn.active { background: var(--primary-color); color: white; }
+    
     .balance-amount { font-size: 36px; font-weight: 800; margin-bottom: 15px; letter-spacing: -1px; }
     .inc-exp-row { display: flex; gap: 10px; }
     .stat-box { flex: 1; padding: 12px; border-radius: 14px; font-size: 13px; }
     .stat-inc { background: rgba(52,199,89,0.12); color: var(--income-color); }
     .stat-exp { background: rgba(255,59,48,0.12); color: var(--expense-color); }
-    .chart-container { height: 220px; position: relative; margin: 10px 0; }
-    input, select { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.08); margin-bottom: 10px; background: rgba(255,255,255,0.7); color: inherit; font-size: 16px; }
+    
+    input, select { 
+      width: 100%; padding: 14px; border-radius: 12px; border: 1px solid rgba(120,120,128,0.2); 
+      margin-bottom: 10px; background: var(--input-bg); color: var(--text-color); font-size: 16px; 
+    }
+    
     .btn-group { display: flex; gap: 10px; }
     button.main-btn { flex: 1; padding: 16px; border: none; border-radius: 14px; color: white; font-weight: 700; cursor: pointer; }
+    
     .transaction-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(142,142,147,0.15); }
+    
     .theme-btns { position: fixed; bottom: 25px; right: 25px; display: flex; flex-direction: column; gap: 12px; z-index: 1000; }
     .circle-btn { width: 50px; height: 50px; border-radius: 25px; background: rgba(44, 44, 46, 0.9); backdrop-filter: blur(10px); color: white; display: flex; align-items: center; justify-content: center; border: none; box-shadow: 0 8px 25px rgba(0,0,0,0.3); cursor: pointer; font-size: 22px; }
+    
     .toast { position: fixed; top: 40px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: white; padding: 12px 25px; border-radius: 30px; font-size: 14px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 2000; }
     .toast.show { opacity: 1; }
+    .chart-container { height: 220px; position: relative; margin: 10px 0; }
   </style>
 </head>
 <body>
@@ -112,9 +131,9 @@
     </div>
   </div>
 
-  <div class="theme-btns" id="ui-buttons">
+  <div class="theme-btns">
     <button class="circle-btn" onclick="app.changeBg()">🖼</button>
-    <button class="circle-btn" onclick="app.toggleTheme()">🌙</button>
+    <button class="circle-btn" id="theme-toggle-btn" onclick="app.toggleTheme()">🌙</button>
   </div>
 
   <div id="toast" class="toast"></div>
@@ -130,7 +149,6 @@ class FinanceApp {
     };
     this.period = 'all';
     this.chart = null;
-
     this.init();
   }
 
@@ -205,6 +223,36 @@ class FinanceApp {
     }
   }
 
+  applyTheme() {
+    // 1. Переключаем класс на body для CSS переменных
+    document.body.classList.toggle('dark-theme', this.data.isDark);
+    
+    // 2. Меняем иконку на кнопке
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    if(themeBtn) themeBtn.textContent = this.data.isDark ? '☀️' : '🌙';
+    
+    // 3. Ставим фон
+    document.body.style.backgroundImage = `url('${this.data.bg}')`;
+  }
+
+  toggleTheme() {
+    this.data.isDark = !this.data.isDark;
+    this.applyTheme();
+    this.save();
+  }
+
+  changeBg() {
+    const b = [
+      'https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg', 
+      'https://i.pinimg.com/1200x/7a/48/f6/7a48f65fa7a927de9ae62fb30deec888.jpg',
+      'https://i.pinimg.com/webp80/1200x/9c/95/12/9c95128db44d6a204cec7ee0028e08bc.webp'
+    ];
+    let idx = b.indexOf(this.data.bg);
+    this.data.bg = b[(idx + 1) % b.length];
+    this.applyTheme(); 
+    this.save();
+  }
+
   render() {
     const filtered = this.data.transactions.filter(t => {
       if (this.period === 'all') return true;
@@ -231,7 +279,7 @@ class FinanceApp {
           <div style="font-size:12px; opacity:0.5">${new Date(t.date).toLocaleDateString()}</div>
         </div>
         <div style="display:flex; align-items:center; gap:10px;">
-          <b style="color:var(--${t.type}-color)">${t.type==='income'?'+':'-'}${t.amt} ₽</b>
+          <b style="color:var(--${t.type}-color)">${t.type==='income'?'+':'-'}${t.amt.toLocaleString()} ₽</b>
           <button onclick="app.delete(${t.id})" style="border:none;background:none;font-size:18px;cursor:pointer">🗑</button>
         </div>
       `;
@@ -250,10 +298,16 @@ class FinanceApp {
     if(!card) return;
     if (!keys.length) { card.style.display='none'; return; }
     card.style.display='block';
+    
     const ctxEl = document.getElementById('mainChart');
     if(!ctxEl) return;
     const ctx = ctxEl.getContext('2d');
+    
     if (this.chart) this.chart.destroy();
+    
+    // Цвет текста для легенды зависит от темы
+    const textColor = this.data.isDark ? '#FFFFFF' : '#000000';
+
     this.chart = new Chart(ctx, {
       type: 'doughnut',
       data: { 
@@ -267,7 +321,10 @@ class FinanceApp {
       options: { 
         cutout: '75%', 
         plugins: { 
-          legend: { position: 'bottom', labels: { color: this.data.isDark?'#fff':'#000', font: { size: 11 } } } 
+          legend: { 
+            position: 'bottom', 
+            labels: { color: textColor, font: { size: 11 } } 
+          } 
         }, 
         maintainAspectRatio: false 
       }
@@ -277,25 +334,6 @@ class FinanceApp {
   getCatName(c) {
     const m = { salary:'Зарплата', food:'Продукты', taxi:'Транспорт', cafe:'Кафе', other_inc:'Прочее', other_exp:'Другое' };
     return m[c] || 'Прочее';
-  }
-
-  toggleTheme() { this.data.isDark = !this.data.isDark; this.applyTheme(); this.save(); }
-  
-  applyTheme() {
-    document.body.classList.toggle('dark-theme', this.data.isDark);
-    document.body.style.backgroundImage = `url('${this.data.bg}')`;
-  }
-
-  changeBg() {
-    const b = [
-      'https://i.pinimg.com/1200x/09/42/81/0942812567b8bd8717e0c458290d54f8.jpg', 
-      'https://i.pinimg.com/736x/76/f2/e1/76f2e1b76920a1540982ee3b67cd22a8.jpg',
-      'https://images.unsplash.com/photo-1557683316-973673baf926?w=1200'
-    ];
-    let idx = b.indexOf(this.data.bg);
-    this.data.bg = b[(idx + 1) % b.length];
-    this.applyTheme(); 
-    this.save();
   }
 }
 const app = new FinanceApp();
