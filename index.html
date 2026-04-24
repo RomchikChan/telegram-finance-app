@@ -1,136 +1,4 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Smart Finance</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-  <style>
-    :root {
-      --primary-color: #40a7e3;
-      --income-color: #34C759;
-      --expense-color: #FF3B30;
-      --bg-color: #F2F2F7;
-      --card-bg: rgba(255, 255, 255, 0.85);
-      --text-color: #1c1c1e;
-      --secondary-text: #8E8E93;
-      --border-radius: 20px;
-      --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    }
-    .dark-theme {
-      --bg-color: #000000;
-      --card-bg: rgba(28, 28, 30, 0.9);
-      --text-color: #FFFFFF;
-      --shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    body {
-      font-family: -apple-system, system-ui, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      min-height: 100vh;
-      background-size: cover;
-      background-position: center;
-      background-attachment: fixed;
-      display: flex;
-      justify-content: center;
-    }
-    .app-container { width: 100%; max-width: 500px; padding: 16px; display: none; flex-direction: column; }
-    #lock-screen { display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; flex-direction: column; padding: 20px; }
-    
-    header, .balance-card, .analytics-card, .add-transaction, .transactions {
-      background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border-radius: var(--border-radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    h1 { font-size: 22px; margin-bottom: 15px; font-weight: 800; }
-    h2 { font-size: 14px; opacity: 0.6; margin-bottom: 12px; text-transform: uppercase; }
-    .period-selector { display: flex; gap: 8px; margin-bottom: 5px; }
-    .period-btn { flex: 1; padding: 10px; border: none; border-radius: 12px; background: rgba(0,0,0,0.05); color: var(--text-color); font-size: 13px; cursor: pointer; }
-    .period-btn.active { background: var(--primary-color); color: white; }
-    .balance-amount { font-size: 36px; font-weight: 800; margin-bottom: 15px; letter-spacing: -1px; }
-    .inc-exp-row { display: flex; gap: 10px; }
-    .stat-box { flex: 1; padding: 12px; border-radius: 14px; font-size: 13px; }
-    .stat-inc { background: rgba(52,199,89,0.12); color: var(--income-color); }
-    .stat-exp { background: rgba(255,59,48,0.12); color: var(--expense-color); }
-    .chart-container { height: 220px; position: relative; margin: 10px 0; }
-    input, select { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.08); margin-bottom: 10px; background: rgba(255,255,255,0.7); color: inherit; font-size: 16px; }
-    .btn-group { display: flex; gap: 10px; }
-    button.main-btn { flex: 1; padding: 16px; border: none; border-radius: 14px; color: white; font-weight: 700; cursor: pointer; }
-    .transaction-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(142,142,147,0.15); }
-    .theme-btns { position: fixed; bottom: 25px; right: 25px; display: flex; flex-direction: column; gap: 12px; z-index: 1000; }
-    .circle-btn { width: 50px; height: 50px; border-radius: 25px; background: rgba(44, 44, 46, 0.9); backdrop-filter: blur(10px); color: white; display: flex; align-items: center; justify-content: center; border: none; box-shadow: 0 8px 25px rgba(0,0,0,0.3); cursor: pointer; font-size: 22px; }
-    .toast { position: fixed; top: 40px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: white; padding: 12px 25px; border-radius: 30px; font-size: 14px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 2000; }
-    .toast.show { opacity: 1; }
-  </style>
-</head>
-<body>
-
-  <div id="lock-screen">
-    <div style="font-size: 50px;">🔒</div>
-    <h1 style="margin-top:10px;">Приватный доступ</h1>
-    <p style="opacity:0.6;">Идентификация пользователя...</p>
-  </div>
-
-  <div class="app-container" id="main-app">
-    <header>
-      <h1>Мои финансы</h1>
-      <div class="period-selector">
-        <button class="period-btn active" onclick="app.setPeriod('all')">Все</button>
-        <button class="period-btn" onclick="app.setPeriod('month')">Месяц</button>
-        <button class="period-btn" onclick="app.setPeriod('week')">Неделя</button>
-      </div>
-    </header>
-
-    <div class="balance-card">
-      <h2>Баланс</h2>
-      <div class="balance-amount" id="balance">0 ₽</div>
-      <div class="inc-exp-row">
-        <div class="stat-box stat-inc">Доходы<br><b id="inc-total">0 ₽</b></div>
-        <div class="stat-box stat-exp">Расходы<br><b id="exp-total">0 ₽</b></div>
-      </div>
-    </div>
-
-    <div class="analytics-card" id="chart-card" style="display: none;">
-      <h2>Аналитика</h2>
-      <div class="chart-container">
-        <canvas id="mainChart"></canvas>
-      </div>
-    </div>
-
-    <div class="add-transaction">
-      <h2>Новая запись</h2>
-      <input type="text" id="desc" placeholder="Описание">
-      <input type="number" id="amt" placeholder="Сумма ₽" inputmode="decimal">
-      <select id="cat">
-        <option value="">Категория</option>
-        <optgroup label="Доходы"><option value="salary">Зарплата</option><option value="other-inc">Прочее</option></optgroup>
-        <optgroup label="Расходы"><option value="food">Продукты</option><option value="taxi">Транспорт</option><option value="cafe">Кафе</option><option value="other-exp">Другое</option></optgroup>
-      </select>
-      <div class="btn-group">
-        <button class="main-btn" style="background:#34C759" onclick="app.add('income')">Доход</button>
-        <button class="main-btn" style="background:#FF3B30" onclick="app.add('expense')">Расход</button>
-      </div>
-    </div>
-
-    <div class="transactions">
-      <h2>История</h2>
-      <div id="list"></div>
-    </div>
-  </div>
-
-  <div class="theme-btns" id="ui-buttons" style="display: none;">
-    <button class="circle-btn" onclick="app.changeBg()">🖼</button>
-    <button class="circle-btn" onclick="app.toggleTheme()">🌙</button>
-  </div>
-
-  <div id="toast" class="toast"></div>
-
 <script>
-// Зашифрованный хеш вашего ID (953937928)
-const ALLOWED_HASH = "80f12c6a0868a86a6064f26a575003b070498b67b14067332204c344799042c0";
-
 class FinanceApp {
   constructor() {
     this.tg = window.Telegram.WebApp;
@@ -143,18 +11,34 @@ class FinanceApp {
 
   checkAccess() {
     const user = this.tg.initDataUnsafe?.user;
+    const MY_REAL_ID = 953937928; // Твой подтвержденный ID
+
+    // 1. Проверка через Telegram
     if (user) {
-      const userHash = CryptoJS.SHA256(user.id.toString()).toString();
-      if (userHash === ALLOWED_HASH) {
+      if (Number(user.id) === MY_REAL_ID) {
         this.unlock();
+        return;
+      } else {
+        // Если ID не совпал, выводим его на экран для диагностики
+        document.getElementById('lock-screen').innerHTML = `
+          <div style="font-size: 50px;">❌</div>
+          <h1>Доступ запрещен</h1>
+          <p style="margin-top:10px; opacity:0.8;">Ваш Telegram ID: <b>${user.id}</b></p>
+          <p style="font-size:12px; opacity:0.5;">Скопируйте этот номер, если он отличается от прописанного в коде.</p>
+        `;
         return;
       }
     }
-    // Если зашли не через ТГ (как PWA на Android), проверяем локальный ключ доступа
+
+    // 2. Проверка для PWA (Android иконка)
     if (localStorage.getItem('is_authenticated') === 'true') {
         this.unlock();
     } else {
-        document.getElementById('lock-screen').innerHTML = "<h1>Доступ запрещен</h1>";
+        document.getElementById('lock-screen').innerHTML = `
+          <div style="font-size: 50px;">🔒</div>
+          <h1>Ошибка входа</h1>
+          <p style="margin-top:10px; opacity:0.6;">Пожалуйста, запустите приложение<br>через Telegram бота хотя бы один раз.</p>
+        `;
     }
   }
 
@@ -290,5 +174,3 @@ class FinanceApp {
 }
 const app = new FinanceApp();
 </script>
-</body>
-</html>
