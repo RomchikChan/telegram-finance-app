@@ -57,6 +57,9 @@
     .period-selector { display: flex; gap: 8px; margin-bottom: 5px; }
     .period-btn { flex: 1; padding: 10px; border: none; border-radius: 12px; background: rgba(120,120,128,0.1); color: var(--text-color); font-size: 13px; cursor: pointer; }
     .period-btn.active { background: var(--primary-color); color: white; }
+    .toolbar { display: flex; gap: 8px; margin-top: 10px; }
+    .toolbar .period-btn { text-align: center; }
+    .file-btn input { display: none; }
     
     .balance-amount { font-size: 36px; font-weight: 800; margin-bottom: 15px; letter-spacing: -1px; }
     .inc-exp-row { display: flex; gap: 10px; }
@@ -87,6 +90,10 @@
   <div class="app-container" id="main-app">
     <header>
       <h1>Мои финансы</h1>
+      <div class="toolbar">
+        <button class="period-btn" onclick="app.exportData()">Экспорт</button>
+        <label class="period-btn file-btn">Импорт<input type="file" accept="application/json" onchange="app.importData(event)"></label>
+      </div>
       <div class="period-selector">
         <button class="period-btn active" id="btn-all" onclick="app.setPeriod('all')">Все</button>
         <button class="period-btn" id="btn-month" onclick="app.setPeriod('month')">Месяц</button>
@@ -149,6 +156,8 @@ class FinanceApp {
     };
     this.period = 'all';
     this.chart = null;
+    this.isSaving = false;
+    this.saveAgain = false;
     this.init();
   }
 
@@ -161,11 +170,13 @@ class FinanceApp {
 
   async sync() {
     this.tg.CloudStorage.getItem('finance_data', (err, val) => {
-      if (!err && val) {
-        try { this.data = JSON.parse(val); } catch(e) {}
-      } else {
-        const local = localStorage.getItem('finance_data');
-        if (local) try { this.data = JSON.parse(local); } catch(e) {}
+      if (err) return this.showToast('Не удалось загрузить данные');
+      if (val) {
+        try {
+          const parsed = JSON.parse(val);
+          if (!parsed || !Array.isArray(parsed.transactions)) throw new Error();
+          this.data = parsed;
+        } catch(e) { return this.showToast('Данные повреждены'); }
       }
       this.applyTheme();
       this.render();
@@ -173,10 +184,49 @@ class FinanceApp {
   }
 
   async save() {
+    if (this.isSaving) { this.saveAgain = true; return; }
+    this.isSaving = true;
     const json = JSON.stringify(this.data);
-    this.tg.CloudStorage.setItem('finance_data', json);
-    localStorage.setItem('finance_data', json);
-    this.render();
+    this.tg.CloudStorage.setItem('finance_data', json, (err) => {
+      this.isSaving = false;
+      if (err) this.showToast('Ошибка сохранения. Сделайте экспорт');
+      else this.render();
+      if (this.saveAgain) { this.saveAgain = false; this.save(); }
+    });
+  }
+
+  exportData() {
+    const blob = new Blob([JSON.stringify(this.data, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `finance-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    this.showToast('Резервная копия создана');
+  }
+
+  importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const imported = JSON.parse(reader.result);
+        if (!imported || !Array.isArray(imported.transactions)) throw new Error();
+        if (!confirm('Заменить текущие данные импортированными?')) return;
+        this.data = {
+          transactions: imported.transactions.filter(t => t && Number.isFinite(t.amt) && (t.type === 'income' || t.type === 'expense')),
+          isDark: Boolean(imported.isDark),
+          bg: typeof imported.bg === 'string' ? imported.bg : this.data.bg
+        };
+        this.applyTheme();
+        this.save();
+        this.showToast('Данные импортированы');
+      } catch(e) { this.showToast('Неверный файл резервной копии'); }
+      event.target.value = '';
+    };
+    reader.readAsText(file);
   }
 
   showToast(txt) {
@@ -265,7 +315,7 @@ class FinanceApp {
     const cats = {};
     const listEl = document.getElementById('list');
     if(!listEl) return;
-    listEl.innerHTML = '';
+    listEl.replaceChildren();
 
     filtered.sort((a,b) => b.id - a.id).forEach(t => {
       if (t.type === 'income') { inc += t.amt; bal += t.amt; }
@@ -273,16 +323,28 @@ class FinanceApp {
       
       const item = document.createElement('div');
       item.className = 'transaction-item';
-      item.innerHTML = `
-        <div class="t-info">
-          <div style="font-weight:600">${t.desc}</div>
-          <div style="font-size:12px; opacity:0.5">${new Date(t.date).toLocaleDateString()}</div>
-        </div>
-        <div style="display:flex; align-items:center; gap:10px;">
-          <b style="color:var(--${t.type}-color)">${t.type==='income'?'+':'-'}${t.amt.toLocaleString()} ₽</b>
-          <button onclick="app.delete(${t.id})" style="border:none;background:none;font-size:18px;cursor:pointer">🗑</button>
-        </div>
-      `;
+      const info = document.createElement('div');
+      info.className = 't-info';
+      const desc = document.createElement('div');
+      desc.style.fontWeight = '600';
+      desc.textContent = t.desc;
+      const date = document.createElement('div');
+      date.style.cssText = 'font-size:12px; opacity:0.5';
+      date.textContent = new Date(t.date).toLocaleDateString();
+      info.append(desc, date);
+      const right = document.createElement('div');
+      right.style.cssText = 'display:flex; align-items:center; gap:10px;';
+      const amount = document.createElement('b');
+      amount.style.color = t.type === 'income' ? 'var(--income-color)' : 'var(--expense-color)';
+      amount.textContent = `${t.type === 'income' ? '+' : '-'}${t.amt.toLocaleString()} ₽`;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.textContent = '🗑';
+      remove.setAttribute('aria-label', 'Удалить запись');
+      remove.style.cssText = 'border:none;background:none;font-size:18px;cursor:pointer';
+      remove.addEventListener('click', () => this.delete(t.id));
+      right.append(amount, remove);
+      item.append(info, right);
       listEl.appendChild(item);
     });
 
